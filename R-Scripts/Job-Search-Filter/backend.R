@@ -111,16 +111,15 @@ keywordCheck <- function(terms, page) {
 finalizeDF <- function(df) {
 	joblinks <- paste("https://www.indeed.com","/rc/clk?jk=",df[,'jk'], "&fccid=", df[,'cmpid'], sep="")
 	df <- cbind(id=joblinks, subset(df, select=c("title","cmp", "city", "state", "zip","date")))
-	#df <- cbind(df, applied=c())
 }
 
 #top-level method to fill out the gui from the df.
 #Dependent on the global var. globApplied, globTerms, globDF
 pull <- function(query) {
-	cat("here")
+
 	if (is.null(query))
 		return(NULL)
-	cat("BEER")
+
 	#get query results
 	globDF <<- getQueryResult(query)
 	globDF <<- finalizeDF(globDF)
@@ -208,19 +207,16 @@ renderFilter <- function(filter) {
   filterDisplay <- gtkHBox(homogeneous=F, spacing=0)
   remove <- gtkButtonNewFromStock("gtk-delete")
   gSignalConnect(remove, "clicked", f=function(button) {
-    cat("REMOVED")
+
     children <- filtersDisplay$getChildren()
     match <- NULL
     for (i in seq(children)) {
       child <- remove$getParent()$getParent()$getParent()
 
-      #print(identical(children[i], child, ignore.bytecode = F, ignore.environment = T))
       if (identical(children[[i]], child))
         match <- i
     }
-    print("match is")
-    print(match)
-    #cat(is.null(match))
+	  
     globFilters <<- globFilters[-i,, drop=F]
     filtersDisplay$remove(child)
     child$destroy
