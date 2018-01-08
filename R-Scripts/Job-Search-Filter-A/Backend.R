@@ -57,12 +57,12 @@ getDates <- function(jobs, page) {
 }
 
 #Counts how many times each keyword occurs on the page.
-countKeywords <- function(keywords) {
+countKeywords <- function(keywords, page) {
 	#Apply
 }
 
 #Counts how many times a tunes a keyword occurs on the page.
-countKeyword <- function(keyword) {
+countKeyword <- function(keyword, page) {
 
 }
 
