@@ -102,12 +102,14 @@ renderFilter <- function(filter) {
 
 #Clears a GtkContainer.
 clearContainer <- function(container) {
-
+	for (child in container$getChildren())
+		container$remove(child)
 }
 
 #Adds all the widgets to the container.
-addAllContainer(widgets, container) {
-
+addAllContainer <- function(widgets, container) {
+	for (widget in widgets)
+		container$add(widget)
 }
 
 ######################################################################
