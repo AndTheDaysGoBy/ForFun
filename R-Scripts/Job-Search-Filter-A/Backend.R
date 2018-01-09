@@ -46,23 +46,23 @@ createJobDF <- function(page) {
 ######################################################################
 #Page Processing Specific
 
-#Extracts the job info. for all jobs on the page.
-getJobs <- function(page) {
+#Extracts the job info. for all jobs on the page's html tree.
+getJobs <- function(tree) {
 
 }
 
-#Extracts the dates corresponding to jobs on a page (excludes sponsored jobs).
-getDates <- function(jobs, page) {
+#Extracts the dates corresponding to jobs on a page's html tree (excludes sponsored jobs).
+getDates <- function(jobs, tree) {
 
 }
 
-#Counts how many times each keyword occurs on the page.
-countKeywords <- function(keywords, page) {
+#Counts how many times each keyword occurs on the page's HTML tree (mainly text).
+countKeywords <- function(keywords, tree) {
 	#Apply
 }
 
-#Counts how many times a tunes a keyword occurs on the page.
-countKeyword <- function(keyword, page) {
+#Counts how many times a tunes a keyword occurs on the page (mainly text).
+countKeyword <- function(keyword, tree) {
 
 }
 
@@ -85,9 +85,24 @@ Core Render Specific##################################################
 #Render Specific
 
 #Takes dataframe and renders each row (different result between type='job' and type='filter').
-renderAll <- function(df, type='job') {
-	#Apply
-	return(rendered_objs)
+renderAll <- function(df, type='filter') {
+	adply(df, 1, render, type)
+}
+
+#Render an array properly depending on whether it's a filter or a job.
+render <- function(arr, type='filter') {
+	border <- gtkFrame()
+	bg <- gtkEventBox()
+	
+	if (type == 'job')
+		inner <- innerrenderJob(arr)
+	else
+		inner <- renderFilter(arr)
+		
+	bg$add(inner)
+	bg$modifyBg('normal', 'white')
+	border$add(bg)
+	border
 }
 
 #Renders the part unique to a job.
