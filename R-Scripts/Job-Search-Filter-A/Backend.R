@@ -48,12 +48,22 @@ createJobDF <- function(page) {
 
 #Extracts the job info. for all jobs on the page's html tree.
 getJobs <- function(tree) {
+	#This id get method doesn't necessary conform to jk=&fccid= form. I could use the data-jk field of the "organicJob" to construct it, but it's more computation.
+	id <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//a[@class='turnstileLink']/@href")
+	title <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//a[@class='turnstileLink']/@title")
+	company <- trimws(xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='company']", xmlValue), which=both)
+	
+	location <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='location']", xmlValue)
+	location <- gsub(' (?=\\d{5})',',', location, perl=T)
+	location <- strsplit(location, ',')
+	location <- rbind.fill(lapply(location, function(x) data.frame(t(x))))
 
-}
-
-#Extracts the dates corresponding to jobs on a page's html tree (excludes sponsored jobs).
-getDates <- function(jobs, tree) {
-
+	date <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='date']", xmlValue)
+	date <- regmatches(date,gregexpr("\\b[[:digit:]]+.", date))
+	date[grepl("+", dates, fixed = T)] <- "31" #if 30+ days old, just mark as 31.
+	date <- as.numeric(date)
+	
+	df <- data.frame(id=id, title=title, company=company, city=location$X1, state=location$X2, zip=location$X3, date=date)
 }
 
 #Counts how many times each keyword occurs on the page's HTML tree (mainly text).
