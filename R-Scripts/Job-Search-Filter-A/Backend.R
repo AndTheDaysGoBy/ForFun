@@ -31,27 +31,42 @@ load <- function() {
 #Query Data Construction Specific
 
 #Creates a dataframe of all job data acquired from the URL.
-createQueryResult <- function(queryURL) {
-
-}
-
-######################################################################
-#Job Data Construction Specific
-
-#Create a dataframe of job data on a page.
-createJobDF <- function(page) {
-	return(jobDF)
+createQueryResult <- function(queryURL, MAX=500) {
+	url <- queryURL
+	tree <- getTree(url)
+	totalJobs <- xpathSApply(pagetree, "//div[@id='searchCount']", xmlValue)
+	totalJobs <- as.numeric(regmatches(totalJobs,gregexpr("\\b([[:digit:]])[[:digit:]]\\b", totalJobs)))
+	jobs <- data.frame(id=id, title=title, company=company, city=location$X1, state=c(), zip=c(), date=c())
+	
+	completed <- 0
+	while ((completed < totalJobs) && (completed < MAX)) {
+		tree <- getTree(url) #Either way, have to call getTree() 1+ times than necessary.
+		pJobs <- getJobs(tree)
+		jobs <- rbind(jobs, pJobs)
+		
+		completed <- completed + nrow(pJobs)
+		url <- paste(starturl, "&start=", completed, sep="")
+	}
+	
+	jobs
 }
 
 ######################################################################
 #Page Processing Specific
+
+#Takes in a query and returns the tree form of the page.
+getTree <- function(url) {
+	page <- getURL(url, .opts = curlOptions(followlocation=T))
+	page <- readLines(tc <- textConnection(page)); close(tc)
+	tree <- htmlTreeParse(page, error=function(...){}, useInternalNodes = TRUE)	
+}
 
 #Extracts the job info. for all jobs on the page's html tree.
 getJobs <- function(tree) {
 	#This id get method doesn't necessary conform to jk=&fccid= form. I could use the data-jk field of the "organicJob" to construct it, but it's more computation.
 	id <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//a[@class='turnstileLink']/@href")
 	title <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//a[@class='turnstileLink']/@title")
-	company <- trimws(xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='company']", xmlValue), which=both)
+	company <- trimws(xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='company']", xmlValue), which="both")
 	
 	location <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='location']", xmlValue)
 	location <- gsub(' (?=\\d{5})',',', location, perl=T)
@@ -60,7 +75,7 @@ getJobs <- function(tree) {
 
 	date <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='date']", xmlValue)
 	date <- regmatches(date,gregexpr("\\b[[:digit:]]+.", date))
-	date[grepl("+", dates, fixed = T)] <- "31" #if 30+ days old, just mark as 31.
+	date[grepl("+", date, fixed = T)] <- "31" #if 30+ days old, just mark as 31.
 	date <- as.numeric(date)
 	
 	df <- data.frame(id=id, title=title, company=company, city=location$X1, state=location$X2, zip=location$X3, date=date)
