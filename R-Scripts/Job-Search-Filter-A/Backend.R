@@ -1,7 +1,9 @@
 #DEFINITIONS
+#QUERY is a user set value. It's the URL resulting from a search for a job.
 #FILTERS is a matrix of 3 columns: 'type', 'class', 'condition'
 #TERMS is a list of vectors: the first vector is 'want', the second is 'dont'
 #JOBS is a dataframe of columns: 'id', 'title', 'company', 'city', 'state', 'zip', 'date', 'applied'
+#APPLIED is a character vector. This exists since all applied jobs might not appear in a pull.
 #Note, 'applied' in JOBS stores checkbox objects.
 #Level of allowed interference: No globals, allow column names, knowledge of if NULL.
 ######################################################################
@@ -11,27 +13,38 @@
 #Allowed global interference
 
 #Pulls the results from a query and loads them into the display window.
-pull <- function() {
+pull <- function(display) {
+	#Pull job data.
+	JOBS <<- createQueryResult(QUERY, MAX)
 
+	#Compare against applied, and construct the applied column.
+	JOBS[JOBS$id %in% APPLIED,]$applied <- APPLIED #Instead of applied, should be vector of checkbuttons.
+	
+	#Filter the job data.
+	filtered <- useFilters(JOBS, FILTERS)
+	
+	#Renders the data.
+	addAllContainer(renderAll(filtered, type='job', TERMS), display)
+	display
 }
 
-#Saves the inclusion/exclusion settings (terms), the filters, and the applied to jobs.
+#Saves the inclusion/exclusion settings (terms), the applied jobs, and the filters.
 save <- function() {
-
+	save(TERMS, APPLIED, FILTERS, "Job-Search-A-Settings.rda")
 }
 
 #Load the inclusion/exclusion settings (terms), the filters, and the applied to jobs.
 load <- function() {
-
+	load(TERMS, APPLIED, FILTERS, .GlobalEnv)
 }
 
 loadLibs <- function() {
-	load <- require("RCurl") && require("XML") && require("plyr") && require("stringr") && require("RGtk2")
+	loaded <- require("RCurl") && require("XML") && require("plyr") && require("stringr") && require("RGtk2")
 	if (loaded)
 		print("Libraries Loaded.\n");
 	else
 		print("Libraries failed to load. Check to see the proper packages are installed.")
-	load
+	loaded
 }
 
 main <- function() {
