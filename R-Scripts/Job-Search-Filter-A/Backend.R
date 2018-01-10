@@ -54,6 +54,7 @@ main <- function() {
 		stop("The program failed to start.")
 	
 	#Load the main window.
+	openMainWindow()
 }
 
 ######################################################################
@@ -113,7 +114,7 @@ getJobs <- function(tree) {
 }
 
 #Attempts to extract all valuable text from a webpage (Thanks to R-blogger for the code).
-getPageText(url) {
+getPageText <- function(url) {
 	page <- getURL(url, followlocation = TRUE)
 	page <- htmlParse(html, asText=TRUE)
 	text <- xpathSApply(page, "//text()[not(ancestor::script)][not(ancestor::style)][not(ancestor::noscript)][not(ancestor::form)]", xmlValue)
