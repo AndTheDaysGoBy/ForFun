@@ -15,6 +15,27 @@ openMainWindow() <- function() {
 	all$packStart(menu, expand=F, fill=F)
 	all$packStart(core)
 
+	#Core
+	jobList <- gtkFrame("Job List")
+	jobPage <- gtkFrame("Job Page")
+	core$packStart(jobList, fill=T)
+	core$packStart(jobPage, fill=T)
+
+	#jobList
+	scrollJobPane <- gtkScrolledWindow()
+	scrollJobPane$setPolicy("never", "automatic")
+	jobList$add(scrollJobPane)
+
+	#scrollJobPane
+	renderedJobs <- gtkVBox(homogeneous=T, spacing=5)
+	scrolled$addWithViewport(renderedJobs)
+
+	#jobPage
+	notebook <- gtkNotebook()
+	notebook$appendPage(gtkLabel("Page 1"), gtkLabel("Tab 1"))
+	notebook$appendPage(gtkLabel("Page 2"), gtkLabel("Tab 2"))
+	jobPage$add(notebook)
+
 	#Menubar
 	mFile <- gtkMenuItemNewWithLabel("File", show = T)
 	mConstraints <- gtkMenuItemNewWithLabel("Constraints", show=T)
@@ -28,7 +49,7 @@ openMainWindow() <- function() {
 	#File submenu:pull item
 	mPull <- gtkMenuItemNewWithLabel("Pull", show = T)
 	gSignalConnect(mPull, "activate", f=function(a, data) {
-		pull(NULL)
+		pull(renderedJobs)
 	})
 	subFile$append(mPull)
 
@@ -62,28 +83,7 @@ openMainWindow() <- function() {
 		openFilterWindow()
 	})
 	subConstraints$append(mFilters)
-
-	#Core
-	jobList <- gtkFrame("Job List")
-	jobPage <- gtkFrame("Job Page")
-	core$packStart(jobList, fill=T)
-	core$packStart(jobPage, fill=T)
-
-	#jobList
-	scrollJobPane <- gtkScrolledWindow()
-	scrollJobPane$setPolicy("never", "automatic")
-	jobList$add(scrollJobPane)
-
-	#scrollJobPane
-	renderedJobs <- gtkVBox(homogeneous=T, spacing=5)
-	scrolled$addWithViewport(renderedJobs)
-
-	#jobPage
-	notebook <- gtkNotebook()
-	notebook$appendPage(gtkLabel("Page 1"), gtkLabel("Tab 1"))
-	notebook$appendPage(gtkLabel("Page 2"), gtkLabel("Tab 2"))
-	jobPage$add(notebook)
-
+	
 	#Display
 	mainWindow$show()
 }
