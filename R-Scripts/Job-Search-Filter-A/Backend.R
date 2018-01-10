@@ -81,14 +81,16 @@ getJobs <- function(tree) {
 	df <- data.frame(id=id, title=title, company=company, city=location$X1, state=location$X2, zip=location$X3, date=date)
 }
 
-#Counts how many times each keyword occurs on the page's HTML tree (mainly text).
-countKeywords <- function(keywords, tree) {
-	#Apply
+#Attempts to extract all valuable text from a webpage (Thanks to R-blogger for the code).
+getPageText(url) {
+	page <- getURL(url, followlocation = TRUE)
+	page <- htmlParse(html, asText=TRUE)
+	text <- xpathSApply(page, "//text()[not(ancestor::script)][not(ancestor::style)][not(ancestor::noscript)][not(ancestor::form)]", xmlValue)
 }
-
-#Counts how many times a tunes a keyword occurs on the page (mainly text).
-countKeyword <- function(keyword, tree) {
-
+				      
+#Counts how many times each keyword occurs in text. Assume keywords prepared for regex search.
+countKeywords <- function(keywords, text) {
+	str_count(text, keywords)
 }
 
 ######################################################################
@@ -96,12 +98,30 @@ Core Filter Specific##################################################
 
 #Filter the dataframe using all filters in filter.
 useFilters <- function(df, filters) {
-	
+	filteredDF <- df
+	for (i in seq(filters)) {
+		filteredDF <- useFilter(filteredDF, filters[i,])	
+	}
 }
 
 #Filters dataframe using the filter.
 useFilter <- function(df, filter) {
+	class <- filter['class'] #Class names are made such that they're always the same name as df columns.
+	df %>% filter(evalType(type)(evalClass(class)(class, filter['condition']))
+}
 
+#Determines how to compare based off of the class. Assumption: user filter bound on RHS.
+evalClass <- function(class='title', input) {
+	if (class=='company' || class=='title')
+		`==`
+	else if (class=='date')
+		`>=` #Present implementation only works for "posted after X" (not "posted before X")
+}
+	       
+#Manipulates the logical condition for the filter based off of the type.
+evalType <- function(type='1') {
+	if (type=='0')
+		`!`
 }
 
 ######################################################################
