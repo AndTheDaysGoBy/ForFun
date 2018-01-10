@@ -49,7 +49,7 @@ openMainWindow() <- function() {
 	#File submenu:pull item
 	mPull <- gtkMenuItemNewWithLabel("Pull", show = T)
 	gSignalConnect(mPull, "activate", f=function(a, data) {
-		pull(renderedJobs)
+		renderedJobs <- pull(renderedJobs)
 	})
 	subFile$append(mPull)
 
