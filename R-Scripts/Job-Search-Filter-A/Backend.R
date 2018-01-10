@@ -148,19 +148,20 @@ Core Render Specific##################################################
 #Render Specific
 
 #Takes dataframe and renders each row (different result between type='job' and type='filter').
-renderAll <- function(df, type='filter') {
-	adply(df, 1, render, type)
+renderAll <- function(df, type='filter', extra) {
+	adply(df, 1, render, type, extra)
 }
 
 #Render an array properly depending on whether it's a filter or a job.
-render <- function(arr, type='filter') {
+#The extra is the terms for renderJob(), and the box containing all the filters for renderFilter().
+render <- function(arr, type='filter', extra) {
 	border <- gtkFrame()
 	bg <- gtkEventBox()
 	
 	if (type == 'job')
-		inner <- innerrenderJob(arr)
+		inner <- renderJob(arr, extra)
 	else
-		inner <- renderFilter(arr)
+		inner <- renderFilter(arr, extra)
 		
 	bg$add(inner)
 	bg$modifyBg('normal', 'white')
@@ -169,18 +170,18 @@ render <- function(arr, type='filter') {
 }
 
 #Renders the part unique to a job.
-renderJob <- function(job) {
+renderJob <- function(job, terms) {
 	inner <- gtkHBox(homogeneous=F, spacing=0)
 	inner$packEnd(job[['applied']])
 	inner$packEnd(gtkVSeparator())
-	inner$packEnd(gtkLabel(paste(job[['city']], ", ", x[['state']], sep="")))
+	inner$packEnd(gtkLabel(paste(job[['city']], ", ", job[['state']], sep="")))
 	inner$packEnd(gtkVSeparator())
 
 	#Build job description
 	info <- gtkVBox(homogeneous=T)
-	info$add(gtkLabel(paste(x[['title']], x[['company']], sep=" ; ")))
+	info$add(gtkLabel(paste(job[['title']], job[['company']], sep=" ; ")))
 	
-	text <- getPageText(paste("https://www.indeed.com/",x[['id']], sep="")) #Assume only Indeed compatibility for now. Later use domain()
+	text <- getPageText(paste("https://www.indeed.com/", job[['id']], sep="")) #Assume only Indeed compatibility for now. Later use domain()
 	want <- terms[['want']]
 	dont <- terms[['dont']]
 	shouldHave <- countKeywords(text, want)
@@ -206,8 +207,30 @@ renderJob <- function(job) {
 }
 
 #Renders the part unique to a filter.
-renderFilter <- function(filter) {
-	return(filter_rendition)
+renderFilter <- function(filter, display) {
+	inner <- gtkHBox(homogeneous=F, spacing=0)
+  	remove <- gtkButtonNewFromStock("gtk-delete")
+  	gSignalConnect(remove, "clicked", f=function(button) {
+    		children <- filterDisplay$getChildren() #Necessary global? If pass in, will it point to the same?
+    		match <- NULL
+    		for (i in seq(children)) {
+      			filter_render <- remove$getParent()$getParent()$getParent()
+      			if (identical(children[[i]], child)) {
+        			match <- i
+				break
+			}
+		}
+    	}
+	globFilters <<- globFilters[-i,, drop=F] #Necessary global call? Useful due to function copy overhead.
+	filterDisplay$remove(child)
+	child$destroy()
+  })
+  filter$packEnd(remove, expand=F)
+  
+  filter$packEnd(gtkLabelNew(str=filter[['condition']]))
+  filter$packEnd(gtkLabelNew(str=filter[['class']]))
+  filter$packEnd(gtkLabelNew(str=filter[['type']]))
+  filter
 }
 
 #Clears a GtkContainer.
