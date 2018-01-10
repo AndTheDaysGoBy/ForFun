@@ -35,7 +35,7 @@ save <- function() {
 
 #Load the inclusion/exclusion settings (terms), the filters, and the applied to jobs.
 load <- function() {
-	load(TERMS, APPLIED, FILTERS, .GlobalEnv)
+	load("Job-Search-A-Settings.rda", .GlobalEnv)
 }
 
 loadLibs <- function() {
