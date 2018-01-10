@@ -25,6 +25,24 @@ load <- function() {
 
 }
 
+loadLibs <- function() {
+	load <- require("RCurl") && require("XML") && require("plyr") && require("stringr") && require("RGtk2")
+	if (loaded)
+		print("Libraries Loaded.\n");
+	else
+		print("Libraries failed to load. Check to see the proper packages are installed.")
+	load
+}
+
+main <- function() {
+	#Initialize
+	options(stringsAsFactors = FALSE)
+	if (!loadLibs())
+		stop("The program failed to start.")
+	
+	#Load the main window.
+}
+
 ######################################################################
 #Core Dataframe Specific##############################################
 ######################################################################
@@ -89,7 +107,7 @@ getPageText(url) {
 }
 				      
 #Counts how many times each keyword occurs in text. Assume keywords prepared for regex search.
-countKeywords <- function(keywords, text) {
+countKeywords <- function(text, keywords) {
 	str_count(text, keywords)
 }
 
@@ -152,7 +170,39 @@ render <- function(arr, type='filter') {
 
 #Renders the part unique to a job.
 renderJob <- function(job) {
-	return(job_rendition)
+	inner <- gtkHBox(homogeneous=F, spacing=0)
+	inner$packEnd(job[['applied']])
+	inner$packEnd(gtkVSeparator())
+	inner$packEnd(gtkLabel(paste(job[['city']], ", ", x[['state']], sep="")))
+	inner$packEnd(gtkVSeparator())
+
+	#Build job description
+	info <- gtkVBox(homogeneous=T)
+	info$add(gtkLabel(paste(x[['title']], x[['company']], sep=" ; ")))
+	
+	text <- getPageText(paste("https://www.indeed.com/",x[['id']], sep="")) #Assume only Indeed compatibility for now. Later use domain()
+	want <- terms[['want']]
+	dont <- terms[['dont']]
+	shouldHave <- countKeywords(text, want)
+	shouldntHave <- countKeywords(text, dont)
+	
+	green <- "<span foreground='green'>%s</span>"
+	red <- "<span foreground='red'>%s</span>"
+	foundGood <- paste("Found (Good):", paste(want[which(shouldHave > 0)], collapse="; "))
+	foundGood <- sprintf(green, foundGood)
+	notFoundGood <- paste("Not Found (Good):", paste(want[which(shouldHave <= 0)], collapse="; "))
+	notFoundGood <- sprintf(green, notFoundGood)
+	foundBad <- paste("Found (Bad):", paste(dont[which(shouldntHave > 0)], collapse="; "))
+	foundBad <- sprintf(red, foundBad)
+	notFoundBad <- paste("Not Found (Bad):", paste(dont[which(shouldntHave <= 0)], collapse="; "))
+	notFoundBad <- sprintf(red, notFoundBad)
+	
+	info$add(gtkLabel(foundGood))
+	info$add(gtkLabel(notFoundGood))
+	info$add(gtkLabel(foundBad))
+	info$add(gtkLabel(notFoundBad))
+	inner$packEnd(info)
+	inner
 }
 
 #Renders the part unique to a filter.
