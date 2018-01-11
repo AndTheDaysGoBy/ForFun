@@ -227,7 +227,7 @@ renderFilter <- function(filter, display) {
 	inner <- gtkHBox(homogeneous=F, spacing=0)
   	remove <- gtkButtonNewFromStock("gtk-delete")
   	gSignalConnect(remove, "clicked", f=function(button) {
-    		children <- filterDisplay$getChildren() #Necessary global? If pass in, will it point to the same?
+    		children <- display$getChildren()
     		match <- NULL
     		for (i in seq(children)) {
       			filter_render <- remove$getParent()$getParent()$getParent()
@@ -236,17 +236,15 @@ renderFilter <- function(filter, display) {
 				break
 			}
 		}
-    	}
-	globFilters <<- globFilters[-i,, drop=F] #Necessary global call? Useful due to function copy overhead.
-	filterDisplay$remove(child)
-	child$destroy()
-  })
-  filter$packEnd(remove, expand=F)
-  
-  filter$packEnd(gtkLabelNew(str=filter[['condition']]))
-  filter$packEnd(gtkLabelNew(str=filter[['class']]))
-  filter$packEnd(gtkLabelNew(str=filter[['type']]))
-  filter
+		FILTERS <<- FILTERS[-i,, drop=F] #Necessary global call? Useful due to function copy overhead.
+		display$remove(child)
+		child$destroy() #Not sure if need (since child no longer referenced -> destroyed).
+	})
+	filter$packEnd(remove, expand=F)
+	filter$packEnd(gtkLabelNew(str=filter[['condition']]))
+	filter$packEnd(gtkLabelNew(str=filter[['class']]))
+	filter$packEnd(gtkLabelNew(str=filter[['type']]))
+	filter
 }
 
 #Clears a GtkContainer.
