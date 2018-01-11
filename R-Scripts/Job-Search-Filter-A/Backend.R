@@ -17,8 +17,10 @@ pull <- function(display) {
 	#Pull job data.
 	JOBS <<- createQueryResult(QUERY, MAX)
 
+	JOBS$applied <<- gtkCheckButtonNewWithLabel("Applied", show = TRUE) #depending on recycling
+	
 	#Compare against applied, and construct the applied column.
-	JOBS[JOBS$id %in% APPLIED,]$applied <- APPLIED #Instead of applied, should be vector of checkbuttons.
+	JOBS[JOBS$id %in% APPLIED,]$applied <<- createCheckButton("Applied", active=T) #depending on recycling
 	
 	#Filter the job data.
 	filtered <- useFilters(JOBS, FILTERS)
@@ -258,5 +260,23 @@ addAllContainer <- function(widgets, container) {
 	for (widget in widgets)
 		container$add(widget)
 }
-
+		      
+createCheckButton <- function(label, active=F) {
+	checkbox <- gtkCheckButtonNewWithLabel(label, show = TRUE)
+	#Remove/Add from applied list. (Done for persistance between pulls)
+	gSignalConnect(checkbox, "toggled", function(button) {
+		for (i in seq(JOBS$applied))
+			if (identical(JOBS$applied[[i]], button) {
+				if (button['active'])
+					APPLIED <- c(APPLIED, JOBS$id[[i]])
+				else
+					APPLIED <- APPLIED[which(APPLIED != JOBS$id[[i]])]
+					
+				break
+			}
+		}
+	})
+	checkbox['active'] <- active
+}
+		      
 ######################################################################
