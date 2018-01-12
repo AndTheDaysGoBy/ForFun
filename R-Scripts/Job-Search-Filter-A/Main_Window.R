@@ -1,4 +1,4 @@
-openMainWindow() <- function() {
+openMainWindow <- function() {
 	
 	#Top-Level design
 	mainWindow <- gtkWindow(show=F)
@@ -28,7 +28,7 @@ openMainWindow() <- function() {
 
 	#scrollJobPane
 	renderedJobs <- gtkVBox(homogeneous=T, spacing=5)
-	scrolled$addWithViewport(renderedJobs)
+	scrollJobPane$addWithViewport(renderedJobs)
 
 	#jobPage
 	notebook <- gtkNotebook()
@@ -39,8 +39,8 @@ openMainWindow() <- function() {
 	#Menubar
 	mFile <- gtkMenuItemNewWithLabel("File", show = T)
 	mConstraints <- gtkMenuItemNewWithLabel("Constraints", show=T)
-	menu$add(mfile)
-	menu$add(mconstraints)
+	menu$add(mFile)
+	menu$add(mConstraints)
 
 	#File submenu
 	subFile <- gtkMenu()
@@ -55,14 +55,14 @@ openMainWindow() <- function() {
 
 	#File submenu:save item
 	mSave <- gtkMenuItemNewWithLabel("Save", show=T)
-	gSignalConnect(mSave, "active", f=function(a, data) {
+	gSignalConnect(mSave, "activate", f=function(a, data) {
 		save()
 	})
 	subFile$append(mSave)
 
 	#File submenu:load item
 	mLoad <- gtkMenuItemNewWithLabel("Load", show=T)
-	gSignalConnect(mLoad, "active", f=function(a, data) {
+	gSignalConnect(mLoad, "activate", f=function(a, data) {
 		load()
 	})
 	subFile$append(mLoad)
