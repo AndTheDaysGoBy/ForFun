@@ -15,19 +15,20 @@
 #Pulls the results from a query and loads them into the display window.
 pull <- function(display) {
 	#Pull job data.
-	JOBS <<- createQueryResult(QUERY, MAX)
+	JOBS <<- createQueryResult(QUERY, MAXJOBS)
 
-	JOBS$applied <<- gtkCheckButtonNewWithLabel("Applied", show = TRUE) #depending on recycling
+	JOBS$applied <<- replicate(length(JOBS$id), gtkCheckButtonNewWithLabel("Applied", show = TRUE))
 	
 	#Compare against applied, and construct the applied column.
-	JOBS[JOBS$id %in% APPLIED,]$applied <<- createCheckButton("Applied", active=T) #depending on recycling
+	tmp <- JOBS$id %in% APPLIED
+	JOBS[tmp,]$applied <<- replicate(sum(tmp), createCheckButton("Applied", active=T))
 	
 	#Filter the job data.
 	filtered <- useFilters(JOBS, FILTERS)
 	
+	rendered <- renderAll(filtered, type='job', TERMS)
 	#Renders the data.
-	addAllContainer(renderAll(filtered, type='job', TERMS), display)
-	display
+	display <- addAllContainer(rendered, display)
 }
 
 #Saves the inclusion/exclusion settings (terms), the applied jobs, and the filters.
@@ -43,7 +44,7 @@ load <- function() {
 loadLibs <- function() {
 	loaded <- require("RCurl") && require("XML") && require("plyr") && require("stringr") && require("RGtk2")
 	if (loaded)
-		print("Libraries Loaded.\n");
+		print("Libraries Loaded.")
 	else
 		print("Libraries failed to load. Check to see the proper packages are installed.")
 	loaded
@@ -68,9 +69,9 @@ main <- function() {
 createQueryResult <- function(queryURL, MAX=500) {
 	url <- queryURL
 	tree <- getTree(url)
-	totalJobs <- xpathSApply(pagetree, "//div[@id='searchCount']", xmlValue)
+	totalJobs <- xpathSApply(tree, "//div[@id='searchCount']", xmlValue)
 	totalJobs <- as.numeric(regmatches(totalJobs,gregexpr("\\b([[:digit:]])[[:digit:]]\\b", totalJobs)))
-	jobs <- data.frame(id=id, title=title, company=company, city=location$X1, state=c(), zip=c(), date=c())
+	jobs <- data.frame(id=c(), title=c(), company=c(), city=c(), state=c(), zip=c(), date=c())
 	
 	completed <- 0
 	while ((completed < totalJobs) && (completed < MAX)) {
@@ -79,7 +80,7 @@ createQueryResult <- function(queryURL, MAX=500) {
 		jobs <- rbind(jobs, pJobs)
 		
 		completed <- completed + nrow(pJobs)
-		url <- paste(starturl, "&start=", completed, sep="")
+		url <- paste(queryURL, "&start=", completed, sep="")
 	}
 	
 	jobs
@@ -90,7 +91,7 @@ createQueryResult <- function(queryURL, MAX=500) {
 
 #Takes in a query and returns the tree form of the page.
 getTree <- function(url) {
-	page <- getURL(url, .opts = curlOptions(followlocation=T))
+	page <- getURL(url, .opts = curlOptions(followlocation=T, timeout=1))
 	page <- readLines(tc <- textConnection(page)); close(tc)
 	tree <- htmlTreeParse(page, error=function(...){}, useInternalNodes = TRUE)	
 }
@@ -117,18 +118,28 @@ getJobs <- function(tree) {
 
 #Attempts to extract all valuable text from a webpage (Thanks to R-blogger for the code).
 getPageText <- function(url) {
-	page <- getURL(url, followlocation = TRUE)
-	page <- htmlParse(html, asText=TRUE)
-	text <- xpathSApply(page, "//text()[not(ancestor::script)][not(ancestor::style)][not(ancestor::noscript)][not(ancestor::form)]", xmlValue)
+	tryCatch({
+		page <- getURL(url, .opts = curlOptions(followlocation=T, ssl.verifypeer=F, timeout=1))
+		page <- getURL(url, .opts = curlOptions(followlocation=T, ssl.verifypeer=F, timeout=1))
+		page <- htmlParse(page, asText=TRUE)
+		text <- xpathSApply(page, "//text()[not(ancestor::script)][not(ancestor::style)][not(ancestor::noscript)][not(ancestor::form)]", xmlValue)
+	},
+	error=function(cond) {
+		text <- " "
+	})
+	
+	text
 }
 				      
 #Counts how many times each keyword occurs in text. Assume keywords prepared for regex search.
 countKeywords <- function(text, keywords) {
+	if (is.null(keywords))
+		return(NULL)
 	str_count(text, keywords)
 }
 
 ######################################################################
-Core Filter Specific##################################################
+#Core Filter Specific##################################################
 
 #Filter the dataframe using all filters in filter.
 useFilters <- function(df, filters) {
@@ -136,12 +147,13 @@ useFilters <- function(df, filters) {
 	for (i in seq(filters)) {
 		filteredDF <- useFilter(filteredDF, filters[i,])	
 	}
+	filteredDF
 }
 
 #Filters dataframe using the filter.
 useFilter <- function(df, filter) {
 	class <- filter['class'] #Class names are made such that they're always the same name as df columns.
-	df %>% filter(evalType(type)(evalClass(class)(class, filter['condition']))
+	df %>% filter(evalType(type)(evalClass(class)(class, filter['condition'])))
 }
 
 #Determines how to compare based off of the class. Assumption: user filter bound on RHS.
@@ -159,13 +171,13 @@ evalType <- function(type='1') {
 }
 
 ######################################################################
-Core Render Specific##################################################
+#Core Render Specific##################################################
 ######################################################################
 #Render Specific
 
 #Takes dataframe and renders each row (different result between type='job' and type='filter').
 renderAll <- function(df, type='filter', extra) {
-	adply(df, 1, render, type, extra)
+	alply(df, 1, render, type, extra)
 }
 
 #Render an array properly depending on whether it's a filter or a job.
@@ -188,7 +200,7 @@ render <- function(arr, type='filter', extra) {
 #Renders the part unique to a job.
 renderJob <- function(job, terms) {
 	inner <- gtkHBox(homogeneous=F, spacing=0)
-	inner$packEnd(job[['applied']])
+	inner$packEnd(job[['applied']][[1]]) #For some reason, need [[1]]
 	inner$packEnd(gtkVSeparator())
 	inner$packEnd(gtkLabel(paste(job[['city']], ", ", job[['state']], sep="")))
 	inner$packEnd(gtkVSeparator())
@@ -197,7 +209,7 @@ renderJob <- function(job, terms) {
 	info <- gtkVBox(homogeneous=T)
 	info$add(gtkLabel(paste(job[['title']], job[['company']], sep=" ; ")))
 	
-	text <- getPageText(paste("https://www.indeed.com/", job[['id']], sep="")) #Assume only Indeed compatibility for now. Later use domain()
+	text <- getPageText(paste("https://www.indeed.com", job[['id']], sep="")) #Assume only Indeed compatibility for now. Later use domain()
 	want <- terms[['want']]
 	dont <- terms[['dont']]
 	shouldHave <- countKeywords(text, want)
@@ -251,20 +263,22 @@ renderFilter <- function(filter, display) {
 clearContainer <- function(container) {
 	for (child in container$getChildren())
 		container$remove(child)
+	container
 }
 
 #Adds all the widgets to the container.
 addAllContainer <- function(widgets, container) {
 	for (widget in widgets)
 		container$add(widget)
+	container
 }
 		      
 createCheckButton <- function(label, active=F) {
 	checkbox <- gtkCheckButtonNewWithLabel(label, show = TRUE)
 	#Remove/Add from applied list. (Done for persistance between pulls)
 	gSignalConnect(checkbox, "toggled", function(button) {
-		for (i in seq(JOBS$applied))
-			if (identical(JOBS$applied[[i]], button) {
+		for (i in seq(JOBS$applied)) {
+			if (identical(JOBS$applied[[i]], button)) {
 				if (button['active'])
 					APPLIED <- c(APPLIED, JOBS$id[[i]])
 				else
@@ -275,6 +289,7 @@ createCheckButton <- function(label, active=F) {
 		}
 	})
 	checkbox['active'] <- active
+	checkbox
 }
 		      
 ######################################################################
