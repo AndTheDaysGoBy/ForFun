@@ -28,6 +28,7 @@ pull <- function(display) {
 	
 	rendered <- renderAll(filtered, type='job', TERMS)
 	#Renders the data.
+	display <- clearContainer(display)
 	display <- addAllContainer(rendered, display)
 }
 
