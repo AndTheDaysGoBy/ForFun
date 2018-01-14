@@ -3,9 +3,9 @@ QUERY <- NULL
 MAXJOBS <- 900
 
 #GLOBALS
-FILTERS <- matrix(nrow = 0, ncol= 3)
-colnames(FILTERS) <- c("class", "type", "condition")
-DF <- NULL
+FILTERS <- as.data.frame(matrix(nrow = 0, ncol= 3))
+colnames(FILTERS) <- c("type", "class", "condition")
+JOBS <- NULL
 TERMS <- array(list(c(),c()))
 APPLIED <- list()
 dimnames(TERMS) <- list(c('want', 'dont'))
