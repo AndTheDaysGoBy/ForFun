@@ -31,7 +31,7 @@ openFilterWindow <- function() {
 	sapply(radio, gtkBoxPackStart, object=filterType)
 
 	#Filter class
-	sapply(c("title", "company", "date"), filterClass$appendText)
+	sapply(c("title", "company", "date", "state", "city"), filterClass$appendText)
 
 
 	#Filter display
