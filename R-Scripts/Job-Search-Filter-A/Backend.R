@@ -33,12 +33,23 @@ pull <- function(display) {
 
 #Saves the inclusion/exclusion settings (terms), the applied jobs, and the filters.
 save <- function() {
-	save(TERMS, APPLIED, FILTERS, "Job-Search-A-Settings.rda")
+	#Save separately for the sake of customizability
+	saveRDS(TERMS, "Job-Search-A-TERMS.rds")
+	saveRDS(APPLIED, "Job-Search-A-APPLIED.rds")
+	saveRDS(FILTERS, "Job-Search-A-FILTERS.rds")
 }
 
 #Load the inclusion/exclusion settings (terms), the filters, and the applied to jobs.
 load <- function() {
-	load("Job-Search-A-Settings.rda", .GlobalEnv)
+	tryCatch({
+			TERMS <<- readRDS("Job-Search-A-TERMS.rds")
+			APPLIED <<- readRDS("Job-Search-A-APPLIED.rds")
+			FILTERS <<- readRDS("Job-Search-A-FILTERS.rds")
+	},
+	error=function(cond) {
+			print("One of the files failed to load. Make sure all three are in your working directory.")
+	})
+		
 }
 
 loadLibs <- function() {
@@ -70,7 +81,7 @@ createQueryResult <- function(queryURL, MAX=500) {
 	url <- queryURL
 	tree <- getTree(url)
 	totalJobs <- xpathSApply(tree, "//div[@id='searchCount']", xmlValue)
-	totalJobs <- as.numeric(regmatches(totalJobs,gregexpr("\\b([[:digit:]])[[:digit:]]\\b", totalJobs)))
+	totalJobs <- as.numeric(regmatches(totalJobs,gregexpr("\\b([[:digit:]])*[[:digit:]]\\b", totalJobs))[[1]][2])
 	jobs <- data.frame(id=c(), title=c(), company=c(), city=c(), state=c(), zip=c(), date=c())
 	
 	completed <- 0
@@ -118,24 +129,35 @@ getJobs <- function(tree) {
 
 #Attempts to extract all valuable text from a webpage (Thanks to R-blogger for the code).
 getPageText <- function(url) {
-	tryCatch({
-		page <- getURL(url, .opts = curlOptions(followlocation=T, ssl.verifypeer=F, timeout=1))
-		page <- getURL(url, .opts = curlOptions(followlocation=T, ssl.verifypeer=F, timeout=1))
+	text <- tryCatch({
+		page <- getURL(url, .opts = curlOptions(followlocation=T, ssl.verifypeer=F, timeout=2))
+		page <- getURL(url, .opts = curlOptions(followlocation=T, ssl.verifypeer=F, timeout=2))
 		page <- htmlParse(page, asText=TRUE)
-		text <- xpathSApply(page, "//text()[not(ancestor::script)][not(ancestor::style)][not(ancestor::noscript)][not(ancestor::form)]", xmlValue)
+		xpathSApply(page, "//text()[not(ancestor::script)][not(ancestor::style)][not(ancestor::noscript)][not(ancestor::form)]", xmlValue)
 	},
 	error=function(cond) {
-		text <- " "
+		" "
 	})
-	
-	text
+	return(text)
 }
-				      
+
+#Parse inclusion/exclusion words
+getKeywords <- function(textfield) {
+	keywords <- unlist(strsplit(textfield, "\n"))
+	keywords <- gsub("\\[|\\\\|\\^|\\$|\\.|\\||\\?|\\*|\\+|\\(|\\)|\\{|\\}", " ", keywords)
+	keywords <- trimws(keywords, which="both")
+	keywords <- keywords[keywords != ""]
+	if (length(keywords) == 0)
+		return(NULL)
+	else
+		return(keywords)
+}
+
 #Counts how many times each keyword occurs in text. Assume keywords prepared for regex search.
 countKeywords <- function(text, keywords) {
 	if (is.null(keywords))
 		return(NULL)
-	str_count(text, keywords)
+	sum(str_count(text, keywords))
 }
 
 ######################################################################
@@ -144,20 +166,22 @@ countKeywords <- function(text, keywords) {
 #Filter the dataframe using all filters in filter.
 useFilters <- function(df, filters) {
 	filteredDF <- df
-	for (i in seq(filters)) {
-		filteredDF <- useFilter(filteredDF, filters[i,])	
+	if (!is.null(df) && nrow(filters) > 0) {
+		for (i in seq(nrow(filters)))
+			filteredDF <- useFilter(filteredDF, filters[i,])	
 	}
 	filteredDF
 }
 
 #Filters dataframe using the filter.
 useFilter <- function(df, filter) {
-	class <- filter['class'] #Class names are made such that they're always the same name as df columns.
-	df %>% filter(evalType(type)(evalClass(class)(class, filter['condition'])))
+	fclass <- filter[['class']] #Class names are made such that they're always the same name as df columns.
+	condition <- evalType(filter[['type']])(evalClass(fclass)(df[[fclass]], filter[['condition']]))
+	df <- as.data.frame(df[condition,], col.names=c("type","class","condition"))
 }
 
 #Determines how to compare based off of the class. Assumption: user filter bound on RHS.
-evalClass <- function(class='title', input) {
+evalClass <- function(class='title') {
 	if (class=='company' || class=='title')
 		`==`
 	else if (class=='date')
@@ -165,10 +189,15 @@ evalClass <- function(class='title', input) {
 }
 	       
 #Manipulates the logical condition for the filter based off of the type.
-evalType <- function(type='1') {
-	if (type=='0')
+evalType <- function(type='MUST') {
+	if (type=='CANNOT')
 		`!`
+	else
+		`%i%`
 }
+
+#Identity operator
+`%i%` <- function(x) { x }
 
 ######################################################################
 #Core Render Specific##################################################
@@ -177,6 +206,14 @@ evalType <- function(type='1') {
 
 #Takes dataframe and renders each row (different result between type='job' and type='filter').
 renderAll <- function(df, type='filter', extra) {
+	rownames(df) <- NULL
+	if (type=='job') {
+		for (i in seq(nrow(df))) {
+			parent <- df$applied[[i]]$getParent()
+			if (!is.null(parent))
+				clearContainer(parent)
+		}
+	}
 	alply(df, 1, render, type, extra)
 }
 
@@ -219,17 +256,16 @@ renderJob <- function(job, terms) {
 	red <- "<span foreground='red'>%s</span>"
 	foundGood <- paste("Found (Good):", paste(want[which(shouldHave > 0)], collapse="; "))
 	foundGood <- sprintf(green, foundGood)
-	notFoundGood <- paste("Not Found (Good):", paste(want[which(shouldHave <= 0)], collapse="; "))
-	notFoundGood <- sprintf(green, notFoundGood)
 	foundBad <- paste("Found (Bad):", paste(dont[which(shouldntHave > 0)], collapse="; "))
 	foundBad <- sprintf(red, foundBad)
-	notFoundBad <- paste("Not Found (Bad):", paste(dont[which(shouldntHave <= 0)], collapse="; "))
-	notFoundBad <- sprintf(red, notFoundBad)
 	
-	info$add(gtkLabel(foundGood))
-	info$add(gtkLabel(notFoundGood))
-	info$add(gtkLabel(foundBad))
-	info$add(gtkLabel(notFoundBad))
+	fGood <- gtkLabel()
+	fGood$setMarkup(foundGood)
+	fBad <- gtkLabel()
+	fBad$setMarkup(foundBad)
+	
+	info$add(fGood)
+	info$add(fBad)
 	inner$packEnd(info)
 	inner
 }
@@ -237,26 +273,28 @@ renderJob <- function(job, terms) {
 #Renders the part unique to a filter.
 renderFilter <- function(filter, display) {
 	inner <- gtkHBox(homogeneous=F, spacing=0)
-  	remove <- gtkButtonNewFromStock("gtk-delete")
-  	gSignalConnect(remove, "clicked", f=function(button) {
-    		children <- display$getChildren()
-    		match <- NULL
-    		for (i in seq(children)) {
-      			filter_render <- remove$getParent()$getParent()$getParent()
-      			if (identical(children[[i]], child)) {
-        			match <- i
-				break
+  remove <- gtkButtonNewFromStock("gtk-delete")
+  gSignalConnect(remove, "clicked", f=function(button) {
+    	children <- display$getChildren()
+    	match <- NULL
+    	for (i in seq(children)) {
+      		filter_render <- remove$getParent()$getParent()$getParent()
+      		if (identical(children[[i]], filter_render)) {
+       			match <- i
+						break
+       		}
 			}
-		}
-		FILTERS <<- FILTERS[-i,, drop=F] #Necessary global call? Useful due to function copy overhead.
-		display$remove(child)
-		child$destroy() #Not sure if need (since child no longer referenced -> destroyed).
+			FILTERS <<- FILTERS[-i,, drop=F] #Necessary global call? Useful due to function copy overhead.				display$remove(child)
+			filter_render$destroy() #Not sure if need (since child no longer referenced -> destroyed).
 	})
-	filter$packEnd(remove, expand=F)
-	filter$packEnd(gtkLabelNew(str=filter[['condition']]))
-	filter$packEnd(gtkLabelNew(str=filter[['class']]))
-	filter$packEnd(gtkLabelNew(str=filter[['type']]))
-	filter
+  inner$packEnd(remove, expand=F)
+  inner$packEnd(gtkVSeparator())
+  inner$packEnd(gtkLabelNew(str=filter[['condition']]))
+  inner$packEnd(gtkVSeparator())
+  inner$packEnd(gtkLabelNew(str=filter[['class']]))
+  inner$packEnd(gtkVSeparator())
+  inner$packEnd(gtkLabelNew(str=filter[['type']]))
+  inner
 }
 
 #Clears a GtkContainer.
