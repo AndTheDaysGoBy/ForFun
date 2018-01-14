@@ -19,7 +19,7 @@ openMainWindow <- function() {
 	jobList <- gtkFrame("Job List")
 	jobPage <- gtkFrame("Job Page")
 	core$packStart(jobList, fill=T)
-	core$packStart(jobPage, fill=T)
+	#core$packStart(jobPage, fill=T)
 
 	#jobList
 	scrollJobPane <- gtkScrolledWindow()
