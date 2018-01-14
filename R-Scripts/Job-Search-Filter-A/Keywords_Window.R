@@ -40,7 +40,7 @@ openKeywordsWindow <- function() { #BFS
 	#Don't Want text display
 	viewDont <- gtkTextView()
 	bufferDont <- viewDont$getBuffer()
-	if (!is.null(globTerms[['dont']])) 
+	if (!is.null(TERMS[['dont']])) 
 		bufferDont$setText(paste(TERMS[['dont']], collapse="\n"))
 	ScrollDontPane$add(viewDont)
 
