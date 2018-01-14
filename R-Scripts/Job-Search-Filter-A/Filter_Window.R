@@ -2,14 +2,10 @@ openFilterWindow <- function() {
 	#Top-level design
 	filterWindow <- gtkWindow(show=F)
 	filterWindow$setTitle("Filters")
-	gSignalConnect(filterWindow, "delete-event", function(event,...) {
-		dispDF <- filter(globDF, globFilters)
-		renderJobs(dispDF, globTerms)
-	})
 
 	#Window design
 	all <- gtkVBox(homogeneous=F)
-	filtersWin$add(all)
+	filterWindow$add(all)
 
 	#Filter input and display
 	input <- gtkHBox()
@@ -35,7 +31,7 @@ openFilterWindow <- function() {
 	sapply(radio, gtkBoxPackStart, object=filterType)
 
 	#Filter class
-	sapply(c("Job Title", "Company Name", "Age of Posting"), filterClass$appendText)
+	sapply(c("title", "company", "date"), filterClass$appendText)
 
 
 	#Filter display
@@ -59,11 +55,17 @@ openFilterWindow <- function() {
 		actives <- sapply(radio, '[', "active")
 		active <- names(actives)[which(actives==T)]
 
-		filterData <- c( active, filterClass$getActiveText(), filterCondition$getText())
+		filterData <- t(matrix(c( active, filterClass$getActiveText(), filterCondition$getText())))
+		colnames(filterData) <- c("type", "class", "condition")
 		FILTERS <<- rbind(FILTERS, filterData)
 
 		addAllContainer(renderAll(FILTERS, type='filter', renderedFilters), renderedFilters)
 	})
 
+	if (nrow(FILTERS) > 0) {
+		prerender <- renderAll(FILTERS, type='filter', extra=renderedFilters)
+		renderedFilters <- addAllContainer(prerender, renderedFilters)
+	}
+	
 	filterWindow$show()
 }
