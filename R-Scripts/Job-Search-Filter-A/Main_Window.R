@@ -39,8 +39,16 @@ openMainWindow <- function() {
 	#Menubar
 	mFile <- gtkMenuItemNewWithLabel("File", show = T)
 	mConstraints <- gtkMenuItemNewWithLabel("Constraints", show=T)
+	mRefresh <- gtkMenuItemNewWithMnemonic("_Refresh", show=T)
+	gSignalConnect(mRefresh, "activate", f=function(a, data) {
+		filteredDF <- useFilters(JOBS, FILTERS)
+		rerendered <- renderAll(filteredDF, type='job', extra=TERMS)
+		clearContainer(renderedJobs)
+		renderedJobs <- addAllContainer(rerendered, renderedJobs)
+	})
 	menu$add(mFile)
 	menu$add(mConstraints)
+	menu$add(mRefresh)
 
 	#File submenu
 	subFile <- gtkMenu()
@@ -74,7 +82,7 @@ openMainWindow <- function() {
 	#Constraints submenu:keyword item
 	mKeywords <- gtkMenuItemNewWithLabel("Keywords", show=T)
 	gSignalConnect(mKeywords, "activate", f=function(a, data) {
-		openKeywordWindow()
+		openKeywordsWindow()
 	})
 	subConstraints$append(mKeywords)
 
