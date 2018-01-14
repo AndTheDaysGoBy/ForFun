@@ -305,9 +305,9 @@ clearContainer <- function(container) {
 }
 
 #Adds all the widgets to the container.
-addAllContainer <- function(widgets, container) {
+addAllContainer <- function(widgets, container, expand=F, fill=F) {
 	for (widget in widgets)
-		container$add(widget)
+		container$packStart(widget, expand=T, fill=F)
 	container
 }
 		      
