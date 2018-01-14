@@ -14,6 +14,23 @@
 
 #Pulls the results from a query and loads them into the display window.
 pull <- function(display) {
+	#Back up new applied jobs, and correct any changed applied jobs.
+	if (!is.null(JOBS) && nrow(JOBS) > 0) {
+		activeList <- unlist(llply(JOBS$applied, "[[", 'active'))
+		
+		#Change (note, since finite, injective=surjective)
+		changes <- activeList[which(JOBS$id %in% APPLIED)]
+		if (length(changes) > 0) {
+			APPLIED[which(APPLIED %in% JOBS$id)] <<- changes
+		}
+		
+		#New
+		activeJobIds <- JOBS$id[activeList]
+		newApplieds <- activeJobIds[!(activeJobIds %in% APPLIED)]
+		if (length(newApplieds) > 0)
+			APPLIED <<- append(APPLIED, newApplieds)
+	}
+	
 	#Pull job data.
 	JOBS <<- createQueryResult(QUERY, MAXJOBS)
 
