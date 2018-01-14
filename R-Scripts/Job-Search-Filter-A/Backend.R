@@ -200,7 +200,7 @@ useFilter <- function(df, filter) {
 
 #Determines how to compare based off of the class. Assumption: user filter bound on RHS.
 evalClass <- function(class='title') {
-	if (class=='company' || class=='title')
+	if (class=='company' || class=='title' || class=='state' || class=='city')
 		`==`
 	else if (class=='date')
 		`>=` #Present implementation only works for "posted after X" (not "posted before X")
