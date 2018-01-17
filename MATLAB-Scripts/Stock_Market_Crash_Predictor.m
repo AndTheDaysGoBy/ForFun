@@ -37,7 +37,7 @@ for day=(100 + 1):size(ADJCP, 1)
         if (k > 1)
             %Get ROI:
             ROIs = (ADJCP(day-1,:)-ADJCP(day-N,:))./ADJCP(day-N,:);
-            V(trading_days) = sum(investments + investments.*ROIs');
+            V(trading_days) = V(trading_days - 1) + sum(investments.*ROIs');
         end
         
         %Update the model:
@@ -49,8 +49,8 @@ for day=(100 + 1):size(ADJCP, 1)
         expected_returns = mean(M_days)';
         
         %Obtain the best weights (maximize Sharpe ratio).
-        allWeights = weights(size(ADJCP,2), ITER);
-        max_sharpe = -1;
+        allWeights = generateWeights(size(ADJCP,2), ITER);
+        max_sharpe = -inf;
         for j=1:ITER
             sharpe = mySharpe(allWeights(:,j), expected_returns, stock_cov, 0);
             if (max_sharpe < sharpe)
@@ -77,15 +77,18 @@ end
     
     
 %Generate Monte-Carlo weights. Each column is a set of weights.
-%Satisfies sum(|w_i|) <= 1.
-function w = weights(num_weights, iterations)
+%Satisfies sum(|w_i|) = 1 (since always fully invested).
+function w = generateWeights(num_weights, iterations)
     abs_sum = zeros([1,iterations]);
     w = zeros([num_weights, iterations]);
-    for j=1:num_weights
+    for j=1:(num_weights-1)
         for i=1:iterations
             w(j,i) = 2*(1 - abs_sum(i))*rand - (1 - abs_sum(i));
             abs_sum(i) = abs_sum(i) + abs(w(j,i));
         end
+    end
+    for i=1:iterations
+        w(num_weights,i) = 1 - abs_sum(i);
     end
 end
 
