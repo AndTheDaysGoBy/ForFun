@@ -180,7 +180,7 @@ parseLocations <- function(locations) {
 	locationDF <- as.data.frame(matrix(data=NA, nrow=length(locations), ncol=3))
 	colnames(locationDF) <- c("city", "state", "zip")
 	splitLocations <- strsplit(locations[grepl(",", locations)], ", ");
-	locationDF[grepl(",", locations),] <- t(sapply(splitLocations, '[', seq(max(sapply(splitLocations,length)))))
+	locationDF[grepl(",", locations),] <- t(sapply(splitLocations, '[', 1:3))
 	
 	#Handle state
 	states <- locations %in% state.name
