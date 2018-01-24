@@ -136,7 +136,7 @@ createQueryResult <- function(queryURL, MAX=500) {
 
 #Takes in a query and returns the tree form of the page.
 getTree <- function(url) {
-	page <- getURL(url, .opts = curlOptions(followlocation=T, timeout=1))
+	page <- getURL(url, .opts = curlOptions(followlocation=T, timeout=2))
 	page <- readLines(tc <- textConnection(page)); close(tc)
 	tree <- htmlTreeParse(page, error=function(...){}, useInternalNodes = TRUE)	
 }
