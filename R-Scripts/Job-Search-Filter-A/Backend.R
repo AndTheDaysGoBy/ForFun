@@ -71,11 +71,24 @@ load <- function() {
 }
 
 loadLibs <- function() {
-	loaded <- require("RCurl") && require("XML") && require("plyr") && require("stringr") && require("RGtk2")
+	
+	if (!require("RCurl"))
+		install.packages("RCurl")
+	if (!require("XML"))
+		install.packages("XML")
+	if (!require("plyr"))
+		install.packages("plyr")
+	if (!require("stringr"))
+		install.packages("stringr")
+	if (!require("RGtk2"))
+		install.packages("RGtk2")
+	
+	loaded <- all(c("RCurl", "XML", "plyr", "stringr", "RGtk2") %in% installed.packages())
 	if (loaded)
 		print("Libraries Loaded.")
 	else
 		print("Libraries failed to load. Check to see the proper packages are installed.")
+	
 	loaded
 }
 
@@ -99,7 +112,7 @@ createQueryResult <- function(queryURL, MAX=500) {
 	url <- queryURL
 	tree <- getTree(url)
 	totalJobs <- xpathSApply(tree, "//div[@id='searchCount']", xmlValue)
-	totalJobs <- as.numeric(regmatches(totalJobs,gregexpr("\\b([[:digit:]])*[[:digit:]]\\b", totalJobs))[[1]][2])
+	totalJobs <- as.numeric(gsub("(.*of | jobs|,)", "", totalJobs))
 	jobs <- data.frame(id=c(), title=c(), company=c(), city=c(), state=c(), zip=c(), date=c())
 	
 	completed <- 0
@@ -109,7 +122,10 @@ createQueryResult <- function(queryURL, MAX=500) {
 		jobs <- rbind(jobs, pJobs)
 		
 		completed <- completed + nrow(pJobs)
+		#if (completed > 450)
+		#	browser()
 		url <- paste(queryURL, "&start=", completed, sep="")
+		print(url)
 	}
 	
 	jobs
@@ -133,16 +149,14 @@ getJobs <- function(tree) {
 	company <- trimws(xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='company']", xmlValue), which="both")
 	
 	location <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='location']", xmlValue)
-	location <- gsub(' (?=\\d{5})',',', location, perl=T)
-	location <- strsplit(location, ',')
-	location <- rbind.fill(lapply(location, function(x) data.frame(t(x))))
-
+	location <- parseLocations(location)
+	
 	date <- xpathSApply(tree, "//div[@data-tn-component='organicJob']//span[@class='date']", xmlValue)
 	date <- regmatches(date,gregexpr("\\b[[:digit:]]+.", date))
 	date[grepl("+", date, fixed = T)] <- "31" #if 30+ days old, just mark as 31.
 	date <- as.numeric(date)
 	
-	df <- data.frame(id=id, title=title, company=company, city=location$X1, state=location$X2, zip=location$X3, date=date)
+	df <- data.frame(id=id, title=title, company=company, city=location$city, state=location$state, zip=location$zip, date=date)
 }
 
 #Attempts to extract all valuable text from a webpage (Thanks to R-blogger for the code).
@@ -157,6 +171,32 @@ getPageText <- function(url) {
 		" "
 	})
 	return(text)
+}
+
+#Get's the city, state, zip for each location found.
+parseLocations <- function(locations) {
+	#Handle city, state <zip>
+	locations <- gsub(' (?=\\d{5})',', ', locations, perl=T)
+	locationDF <- as.data.frame(matrix(data=NA, nrow=length(locations), ncol=3))
+	colnames(locationDF) <- c("city", "state", "zip")
+	splitLocations <- strsplit(locations[grepl(",", locations)], ", ");
+	locationDF[grepl(",", locations),] <- t(sapply(splitLocations, '[', seq(max(sapply(splitLocations,length)))))
+	
+	#Handle state
+	states <- locations %in% state.name
+	ifelse(states, locationDF[states, "state"] <- getAbbrv(locations[states]), NA)
+	
+	#Handle city
+	cities <- !(grepl(",", locations) | states | (locations == "United States"))
+	ifelse(cities, locationDF[cities, "city"] <- locations[cities], NA)
+	
+	#Handle Remote/Country by leaving as NA.
+	locationDF
+}
+
+#Get abbreviation of state names.
+getAbbrv <- function(state) {
+	state.abb[grep(state, state.name)]
 }
 
 #Parse inclusion/exclusion words
