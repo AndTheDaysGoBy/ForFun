@@ -1,4 +1,4 @@
-#Payday
+**Payday**
 
 This program will attempt to faithfully recreate the 1970s Payday game. This game will be single player where the other three are computers. In the future, I hope to expand this to be P2P, but I presently do not know how C++ deals with network programming.
 
