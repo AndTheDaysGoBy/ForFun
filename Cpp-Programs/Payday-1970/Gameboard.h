@@ -1,3 +1,6 @@
+#ifndef GAMEBOARD_H
+#define GAMEBOARD_H
+
 #include <vector>
 #include "Day.h"
 class Gameboard {
@@ -16,3 +19,5 @@ class Gameboard {
 		Gameboard(unsigned int MAX, unsigned int numPlayers);
 		void takeTurn();
 }
+
+#endif
