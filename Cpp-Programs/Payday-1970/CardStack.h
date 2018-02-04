@@ -1,3 +1,6 @@
+#ifndef CARDSTACK_H
+#define CARDSTACK_H
+
 #include <queue>
 #include <list>
 template <class T>
@@ -10,3 +13,5 @@ class CardStack {
 		T draw();
 		void toss(T);
 }
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef PLAYER_H
+#define PLAYER_H
+
 #include <string>
 #include <vector>
 #include "Deal.h"
@@ -26,3 +29,5 @@ class Player {
 		void savings(unsigned int);
 		void loans(unsigned int);
 }
+
+#endif

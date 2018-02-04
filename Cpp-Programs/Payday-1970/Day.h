@@ -1,3 +1,6 @@
+#ifndef DAY_H
+#define DAY_H
+
 #include <string>
 #include "day_types.h"
 class Day {
@@ -10,3 +13,5 @@ class Day {
 		std::string description() { return description; }
 		Event type() { return type; }		
 }
+
+#endif

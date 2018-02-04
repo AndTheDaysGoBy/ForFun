@@ -1,3 +1,6 @@
+#ifndef DEAL_h
+#define DEAL_H
+
 #include <string>
 class Deal {
 	private:
@@ -17,3 +20,5 @@ class Deal {
 		unsigned int commission() const { return commission; }
 		std::string name() const { return name; }
 }
+
+#endif

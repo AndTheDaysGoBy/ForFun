@@ -1,3 +1,6 @@
+#ifndef MAIL_H
+#define MAIL_H
+
 #include <string>
 #include "mail_types.h"
 class Mail {
@@ -18,3 +21,5 @@ class Mail {
 		std::string description() const { return description; }
 		int value() const { return value; }
 }
+
+#endif
